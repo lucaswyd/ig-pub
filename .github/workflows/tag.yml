@@ -1,4 +1,4 @@
-name: tag test
+name: tag
 
 on:
   schedule:
