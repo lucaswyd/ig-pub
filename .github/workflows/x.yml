@@ -37,35 +37,42 @@ jobs:
           PAT_FILE = "last_posted_x.json"
           EASTERN = pytz.timezone("US/Eastern")
 
+          # Load last posted tweet ID safely
+          last_posted_id = None
           if os.path.exists(PAT_FILE):
-              with open(PAT_FILE) as f:
-                  last_posted_id = json.load(f).get("last_id")
-          else:
-              last_posted_id = None
+              try:
+                  data = json.load(open(PAT_FILE))
+                  if isinstance(data, dict) and "last_id" in data:
+                      last_posted_id = data["last_id"]
+              except Exception:
+                  last_posted_id = None
 
           with open("response.json") as f:
               tweets = json.load(f)["data"]["tweets"]
 
+          # Filter only new tweets
           new_tweets = []
           for t in tweets:
               if last_posted_id is None or t["id"] > last_posted_id:
                   new_tweets.append(t)
 
           if new_tweets:
+              # Update last posted ID to the newest tweet
               latest_id = new_tweets[0]["id"]
               with open(PAT_FILE, "w") as f:
                   json.dump({"last_id": latest_id}, f)
 
-              for tweet in reversed(new_tweets):
-                  tweet_id = tweet["id"]
+              for tweet in reversed(new_tweets):  # post oldest first
                   text = tweet["text"]
                   created_utc = tweet["createdAt"]
 
+                  # Convert to Eastern Time
                   dt_utc = datetime.datetime.strptime(created_utc, "%a %b %d %H:%M:%S %z %Y")
                   dt_est = dt_utc.astimezone(EASTERN)
                   formatted_date = dt_est.strftime("%m/%d/%y")
                   formatted_time = dt_est.strftime("%-I:%M %p").lower()
 
+                  # Media URLs as zero-width space hyperlinks
                   content_urls = "".join(f"[\u200b]({m.get('videoUrl') or m.get('url')})" for m in tweet.get("media", []))
                   content = f"<@&1442336357312630895> {content_urls}"
 
