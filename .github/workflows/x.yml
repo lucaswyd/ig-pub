@@ -1,0 +1,96 @@
+name: x
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # every hour
+  workflow_dispatch:
+
+jobs:
+  fetch-and-send:
+    runs-on: ubuntu-latest
+    env:
+      WEBHOOK_X: ${{ secrets.X }}
+      PAT: ${{ secrets.PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl python3-pip
+          pip3 install pytz requests
+
+      - name: Fetch tweets
+        run: |
+          curl -s 'https://www.archivlyx.com/api/x/user-tweets?username=pradabagshawty5&cursor=' \
+            -H 'Accept: */*' \
+            -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15' \
+            -o response.json
+
+      - name: Process and post tweets
+        run: |
+          python3 - <<'EOF'
+          import os, json, datetime, requests, pytz
+
+          WEBHOOK = os.environ["WEBHOOK_X"]
+          PAT_FILE = "last_posted_x.json"
+          EASTERN = pytz.timezone("US/Eastern")
+
+          if os.path.exists(PAT_FILE):
+              with open(PAT_FILE) as f:
+                  last_posted_id = json.load(f).get("last_id")
+          else:
+              last_posted_id = None
+
+          with open("response.json") as f:
+              tweets = json.load(f)["data"]["tweets"]
+
+          new_tweets = []
+          for t in tweets:
+              if last_posted_id is None or t["id"] > last_posted_id:
+                  new_tweets.append(t)
+
+          if new_tweets:
+              latest_id = new_tweets[0]["id"]
+              with open(PAT_FILE, "w") as f:
+                  json.dump({"last_id": latest_id}, f)
+
+              for tweet in reversed(new_tweets):
+                  tweet_id = tweet["id"]
+                  text = tweet["text"]
+                  created_utc = tweet["createdAt"]
+
+                  dt_utc = datetime.datetime.strptime(created_utc, "%a %b %d %H:%M:%S %z %Y")
+                  dt_est = dt_utc.astimezone(EASTERN)
+                  formatted_date = dt_est.strftime("%m/%d/%y")
+                  formatted_time = dt_est.strftime("%-I:%M %p").lower()
+
+                  content_urls = "".join(f"[\u200b]({m.get('videoUrl') or m.get('url')})" for m in tweet.get("media", []))
+                  content = f"<@&1442336357312630895> {content_urls}"
+
+                  embed = {
+                      "author": {"name": formatted_date},
+                      "description": f"{formatted_time}\n{text}",
+                      "color": 14701473,
+                      "footer": {
+                          "text": f"@{tweet['author']['handle']}",
+                          "icon_url": tweet['author']['avatar']
+                      }
+                  }
+
+                  payload = {
+                      "content": content,
+                      "embeds": [embed]
+                  }
+
+                  requests.post(WEBHOOK, json=payload)
+          EOF
+
+      - name: Commit updated last_posted_x.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add last_posted_x.json
+          git commit -m "Update last_posted_x.json" || echo "No changes to commit"
+          git push https://x-access-token:${PAT}@github.com/${{ github.repository }} HEAD:main
