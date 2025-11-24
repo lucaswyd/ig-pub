@@ -31,7 +31,7 @@ jobs:
       - name: Process and post tweets
         run: |
           python3 - <<'EOF'
-          import os, json, datetime, requests, pytz
+          import os, json, datetime, requests, pytz, re
 
           WEBHOOK = os.environ["WEBHOOK_X"]
           PAT_FILE = "last_posted_x.json"
@@ -64,25 +64,27 @@ jobs:
 
               for tweet in reversed(new_tweets):  # post oldest first
                   text = tweet["text"]
-                  created_utc = tweet["createdAt"]
 
-                  # Convert to Eastern Time
+                  # Remove any https://t.co/... links from tweet text
+                  text = re.sub(r'https://t\.co/\S+', '', text).strip()
+
+                  created_utc = tweet["createdAt"]
                   dt_utc = datetime.datetime.strptime(created_utc, "%a %b %d %H:%M:%S %z %Y")
                   dt_est = dt_utc.astimezone(EASTERN)
                   formatted_date = dt_est.strftime("%m/%d/%y")
                   formatted_time = dt_est.strftime("%-I:%M %p").lower()
 
-                  # Media URLs as zero-width space hyperlinks
-                  content_urls = "".join(f"[\u200b]({m.get('videoUrl') or m.get('url')})" for m in tweet.get("media", []))
-                  content = f"<@&1442336357312630895> {content_urls}"
+                  # Append media URLs as clickable links with paperclip emoji
+                  content_urls = "".join(f" 📎 {m.get('videoUrl') or m.get('url')}" for m in tweet.get("media", []))
+                  content = f"<@&1442336357312630895>{content_urls}"
 
                   embed = {
                       "author": {"name": formatted_date},
                       "description": f"{formatted_time}\n{text}",
-                      "color": 14701473,
+                      "color": 0xFFFFFF,
                       "footer": {
-                          "text": f"@{tweet['author']['handle']}",
-                          "icon_url": tweet['author']['avatar']
+                          "text": "@pradabagshawty5",
+                          "icon_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/X_logo.jpg/1024px-X_logo.jpg"
                       }
                   }
 
