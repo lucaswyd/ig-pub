@@ -28,7 +28,7 @@ jobs:
             -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15' \
             -o response.json
 
-      - name: Process and post tweets
+      - name: Process and post tweets with media
         run: |
           python3 - <<'EOF'
           import os, json, datetime, requests, pytz, re
@@ -51,31 +51,37 @@ jobs:
               tweets = json.load(f)["data"]["tweets"]
 
           # Filter new tweets
-          new_tweets = []
-          for t in tweets:
-              if last_posted_id is None or t["id"] > last_posted_id:
-                  new_tweets.append(t)
+          new_tweets = [t for t in tweets if last_posted_id is None or t["id"] > last_posted_id]
 
           if new_tweets:
-              # Update last posted ID
               latest_id = new_tweets[0]["id"]
               with open(PAT_FILE, "w") as f:
                   json.dump({"last_id": latest_id}, f)
 
               for tweet in reversed(new_tweets):  # oldest first
-                  text = tweet["text"]
-                  text = re.sub(r'https://t\.co/\S+', '', text).strip()
+                  text = re.sub(r'https://t\.co/\S+', '', tweet["text"]).strip()
 
-                  created_utc = tweet["createdAt"]
-                  dt_utc = datetime.datetime.strptime(created_utc, "%a %b %d %H:%M:%S %z %Y")
+                  dt_utc = datetime.datetime.strptime(tweet["createdAt"], "%a %b %d %H:%M:%S %z %Y")
                   dt_est = dt_utc.astimezone(EASTERN)
-
-                  # Format time and date
-                  formatted_time = dt_est.strftime("%-I:%M%p").lower()  # no space
+                  formatted_time = dt_est.strftime("%-I:%M%p").lower()
                   formatted_date = dt_est.strftime("%m/%d/%y")
 
-                  # Send main tweet message with text as title
-                  embed_tweet = {
+                  # Download media
+                  files_to_send = []
+                  for idx, media in enumerate(tweet.get("media", []), start=1):
+                      url = media.get("videoUrl") or media.get("url")
+                      if not url:
+                          continue
+                      ext = url.split('.')[-1].split('?')[0]
+                      filename = f"{tweet['id']}-{idx}.{ext}"
+                      r = requests.get(url, stream=True)
+                      with open(filename, "wb") as f:
+                          for chunk in r.iter_content(chunk_size=8192):
+                              f.write(chunk)
+                      files_to_send.append((filename, url))
+
+                  # Build embed
+                  embed = {
                       "title": text,
                       "description": f"{formatted_time}\n{formatted_date}",
                       "color": 0xFFFFFD,
@@ -85,22 +91,21 @@ jobs:
                       }
                   }
 
-                  payload_tweet = {
-                      "content": "-----\n<@&1442336357312630895>",
-                      "embeds": [embed_tweet]
-                  }
+                  # Prepare payload
+                  payload = {"content": "<@&1442336357312630895>", "embeds": [embed]}
+                  files_payload = {f"file{i}": open(f, "rb") for i, (f, _) in enumerate(files_to_send, start=1)}
 
-                  requests.post(WEBHOOK, json=payload_tweet)
-
-                  # Send media URLs in separate message if any
-                  media_links = tweet.get("media", [])
-                  if media_links:
-                      links_line = "".join(f"[<:blank:1442341014307082320>]({m.get('videoUrl') or m.get('url')})" for m in media_links)
-                      payload_media = {
-                          "content": links_line,
-                          "embeds": []
-                      }
-                      requests.post(WEBHOOK, json=payload_media)
+                  # Send main message
+                  try:
+                      requests.post(WEBHOOK, data={"payload_json": json.dumps(payload)}, files=files_payload)
+                  except Exception:
+                      # If attachment fails, post each media link separately
+                      for _, link in files_to_send:
+                          payload_link = {"content": f"-# [file exceeded limit]({link})", "embeds": []}
+                          requests.post(WEBHOOK, json=payload_link)
+                  finally:
+                      for f, _ in files_to_send:
+                          os.remove(f)
           EOF
 
       - name: Commit updated last_posted_x.json
