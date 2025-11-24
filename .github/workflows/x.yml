@@ -75,13 +75,13 @@ jobs:
                   formatted_time = dt_est.strftime("%-I:%M %p").lower()
 
                   # Append media URLs as clickable links with paperclip emoji
-                  content_urls = "".join(f" 📎 {m.get('videoUrl') or m.get('url')}" for m in tweet.get("media", []))
+                  content_urls = "".join(f" <:blank:1442341014307082320> {m.get('videoUrl') or m.get('url')}" for m in tweet.get("media", []))
                   content = f"<@&1442336357312630895>{content_urls}"
 
                   embed = {
                       "author": {"name": formatted_date},
                       "description": f"{formatted_time}\n{text}",
-                      "color": 0xFFFFFF,
+                      "color": 0xFFFFFD,
                       "footer": {
                           "text": "@pradabagshawty5",
                           "icon_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/X_logo.jpg/1024px-X_logo.jpg"
