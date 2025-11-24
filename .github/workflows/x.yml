@@ -86,7 +86,7 @@ jobs:
                   }
 
                   payload_tweet = {
-                      "content": "<@&1442336357312630895>",
+                      "content": "-----\n<@&1442336357312630895>",
                       "embeds": [embed_tweet]
                   }
 
