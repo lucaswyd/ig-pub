@@ -37,7 +37,7 @@ jobs:
             -H "X-XSRF-TOKEN: $XSRF_TOKEN" \
             -H "Content-Type: application/json;charset=utf-8" \
             --cookie "XSRF-TOKEN=$XSRF_TOKEN; laravel_session=$SESSION_COOKIE" \
-            --data-raw '{"userName":"keltec0utdavert","isPrivate":"","instagramUserId":70670349895}' \
+            --data-raw '{"userName":"spotgeekedup_","isPrivate":"","instagramUserId":70670349895}' \
             -o response.json
 
       - name: Filter, process, and post new stories
