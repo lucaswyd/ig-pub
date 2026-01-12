@@ -88,11 +88,11 @@ jobs:
 
                   drawtext_filter = (
                       f"drawtext=fontfile='{font_path}':text='Prada Hub':fontsize=h*0.03:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.05,"
-                      f"drawtext=fontfile='{font_path}':text='discord.gg/vtzrqXzN84':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.05+h*0.03,"
+                      f"drawtext=fontfile='{font_path}':text='discord.gg/Pradabagshawty':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.05+h*0.03,"
                       f"drawtext=fontfile='{font_path}':text='Prada Hub':fontsize=h*0.03:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.45,"
-                      f"drawtext=fontfile='{font_path}':text='discord.gg/vtzrqXzN84':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.45+h*0.03,"
+                      f"drawtext=fontfile='{font_path}':text='discord.gg/Pradabagshawty':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.45+h*0.03,"
                       f"drawtext=fontfile='{font_path}':text='Prada Hub':fontsize=h*0.03:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.85,"
-                      f"drawtext=fontfile='{font_path}':text='discord.gg/vtzrqXzN84':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.85+h*0.03"
+                      f"drawtext=fontfile='{font_path}':text='discord.gg/Pradabagshawty':fontsize=h*0.024:fontcolor=white@0.5:x=(w-text_w)/2:y=h*0.85+h*0.03"
                   )
 
                   if typ == "video":
