@@ -114,7 +114,7 @@ jobs:
                   formatted_date = dt.strftime("%m/%d/%y")
 
                   payload_processed = {
-                      "content": "<@&1429637290644340817>",
+                      "content": "<@/&1429637290644340817>",
                       "embeds": [
                           {
                               "description": formatted_time,
